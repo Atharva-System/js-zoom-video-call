@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="src/style.css" />
+    <title>zoom-video-sdk</title>
+    <!-- Zoom Video SDK UMD build from CDN -->
+    <script src="https://source.zoom.us/videosdk/zoom-video-2.3.14.min.js"></script>
+  </head>
+  <body>
+    <script src="src/main.js" defer></script>
+
+    <!-- Webinar header (shown after join) -->
+    <div id="webinar-header">
+      <div id="webinar-title">Live Webinar</div>
+      <div id="webinar-subheader">
+        <div id="session-description">Test Demo</div>
+        <div id="webinar-meta">
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#666"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+          <span id="timer-label">00:00 elapsed</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Join screen -->
+    <div id="join-container">
+      <h1>Live Webinar</h1>
+      <p>Ready to join? Make sure your camera and mic are ready.</p>
+      <button id="start-btn" class="join-btn" onclick="startSession()">
+        ▶ Join Now
+      </button>
+    </div>
+
+    <!-- Main meeting layout -->
+    <div id="main-container">
+      <!-- Video + Chat row -->
+      <div id="content-row">
+        <!-- Video stage -->
+        <div class="video-stage">
+          <div id="share-container" class="share-hidden">
+            <div class="share-bar">
+              <span id="share-owner">Screen share</span>
+              <button class="ctb-btn" onclick="stopIncomingShare()" title="Close shared screen">
+                ✕
+              </button>
+            </div>
+            <video id="share-video" playsinline autoplay muted></video>
+            <canvas id="share-canvas"></canvas>
+          </div>
+          <div id="video-grid"></div>
+          <div id="empty-ph" class="visible">
+            <svg
+              width="44"
+              height="44"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1"
+              opacity="0.3"
+            >
+              <rect x="2" y="7" width="15" height="10" rx="2" />
+              <path d="M17 9l5-3v12l-5-3" />
+            </svg>
+            <p>
+              Waiting for hosts to share video.<br />Use the controls below to
+              manage your session.
+            </p>
+          </div>
+        </div>
+      </div>
+      <!-- /content-row -->
+
+      <!-- Bottom control bar -->
+      <div id="controls">
+        <!-- Video (host only) -->
+        <button
+          class="c-btn"
+          id="video-btn"
+          onclick="toggleVideo()"
+          title="Start/Stop Video"
+          style="display: none"
+        >
+          <svg
+            id="vid-on"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            style="display: none"
+          >
+            <polygon points="23 7 16 12 23 17 23 7" />
+            <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+          </svg>
+          <svg
+            id="vid-off"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="1" y1="1" x2="23" y2="23" />
+            <path
+              d="M15 13a3 3 0 0 1-5.84 1M17 17H3.24A2 2 0 0 1 2 15.24V7a2 2 0 0 1 1.37-1.89"
+            />
+            <path d="M9.23 5H15a2 2 0 0 1 2 2v3.35M16 11.37V12l5-3v6.62" />
+          </svg>
+        </button>
+
+        <!-- Mic (host only) -->
+        <button
+          class="c-btn muted"
+          id="audio-btn"
+          onclick="toggleAudio()"
+          title="Mute/Unmute"
+          style="display: none"
+        >
+          <!-- unmuted icon -->
+          <svg
+            id="mic-on"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            style="display: none"
+          >
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+            <line x1="12" y1="19" x2="12" y2="23" />
+            <line x1="8" y1="23" x2="16" y2="23" />
+          </svg>
+          <!-- muted icon (shown by default) -->
+          <svg
+            id="mic-off"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="1" y1="1" x2="23" y2="23" />
+            <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" />
+            <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23" />
+            <line x1="12" y1="19" x2="12" y2="23" />
+            <line x1="8" y1="23" x2="16" y2="23" />
+          </svg>
+        </button>
+
+        <!-- Screen share (host/manager only) -->
+        <button
+          class="c-btn"
+          id="share-btn"
+          onclick="toggleShare()"
+          title="Share Screen"
+          style="display: none"
+        >
+          <svg
+            id="share-on"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            style="display: none"
+          >
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+            <polyline points="12 9 16 13 12 13 8 13 12 9" />
+          </svg>
+          <svg
+            id="share-off"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+            <line x1="8" y1="17" x2="16" y2="17" />
+            <line x1="12" y1="17" x2="12" y2="21" />
+          </svg>
+        </button>
+
+        <!-- Question -->
+        <button class="c-btn" title="Question">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+        </button>
+
+        <!-- More -->
+        <button class="c-btn" title="More options">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="5" cy="12" r="1.5" />
+            <circle cx="12" cy="12" r="1.5" />
+            <circle cx="19" cy="12" r="1.5" />
+          </svg>
+        </button>
+
+        <!-- Leave -->
+        <button class="c-btn danger" onclick="leaveSession()" title="Leave">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </body>
+</html>
