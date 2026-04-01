@@ -124,6 +124,14 @@
           </svg>
         </button>
 
+        <!-- Virtual background -->
+        <label class="bg-label" for="vb-select">BG</label>
+        <select id="vb-select" class="bg-select" onchange="setVirtualBackground(this.value)" title="Virtual background">
+          <option value="none" selected>None</option>
+          <option value="blur">Blur</option>
+          <option value="https://images.pexels.com/photos/8266286/pexels-photo-8266286.jpeg?_gl=1*55ekj6*_ga*MTMwMzMyNTEzNC4xNzcyNzc4MjA5*_ga_8JE65Q40S6*czE3NzUwNTQyMjIkbzIkZzEkdDE3NzUwNTQ3MDkkajUzJGwwJGgw">Beach</option>
+        </select>
+
         <!-- Mic (host only) -->
         <button
           class="c-btn muted"

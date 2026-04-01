@@ -14,6 +14,12 @@ let isVideoOn = false; // ✅ camera OFF by default
 let isAudioStarted = false;
 let isSharing = false;
 let activeShareUserId = null;
+let currentVirtualBg = "none";
+let resolvedVirtualBgUrl = null;
+let localVideoTrack = null;
+let pendingVirtualBg = null;
+let isVbSupported = false;
+let selfVideoEl = null;
 const CHAT_CLOSED = 0;
 const CHAT_NARROW = 1;
 const CHAT_WIDE = 2;
@@ -455,6 +461,7 @@ async function removeVideoSlot(userId) {
 }
 
 /* ─── Render slot with video ─── */
+/* ─── Render slot with video ─── */
 async function renderVideo(userId, userPayload = {}) {
   const grid = document.getElementById("video-grid");
   if (!grid) return;
@@ -480,16 +487,18 @@ async function renderVideo(userId, userPayload = {}) {
     slot.appendChild(vpc);
   }
 
-  // ✅ Always clear stale video node before attaching fresh one
-  vpc.innerHTML = "";
-  const vp = createVideoElement();
-  vpc.appendChild(vp);
-
-  try {
-    await stream.attachVideo(userId, 2, vp);
+  // ✅ Only attach if not already rendering
+  if (!vpc.querySelector("video-player")) {
+    const vp = document.createElement("video-player");
+    vpc.appendChild(vp);
+    try {
+      await stream.attachVideo(userId, 3, vp);
+      slot.classList.remove("loading");
+    } catch (err) {
+      console.error("attachVideo failed:", userId, err);
+    }
+  } else {
     slot.classList.remove("loading");
-  } catch (err) {
-    console.error("attachVideo failed:", userId, err);
   }
 }
 
@@ -507,6 +516,8 @@ async function renderAudioOnlySlot(userId, userPayload = {}) {
   grid.appendChild(slot);
   updateGridLayout();
   reorderGrid(); // ✅ keep order after each add
+  const ph = document.getElementById("empty-ph");
+  if (ph) ph.classList.remove("visible");
 }
 
 /* ─── Join ─── */
@@ -544,6 +555,7 @@ async function startSession() {
       patchJsMedia: true,
       dependentAssets: window.location.origin + "/zoom-lib/",
       stayAwake: true,
+      enforceVirtualBackground: true,
     });
 
     let _userNameId = userName + "|" + userUuid;
@@ -566,6 +578,10 @@ async function startSession() {
 
     // ✅ Single assignment
     stream = client.getMediaStream();
+    isVbSupported =
+      typeof stream.isSupportVirtualBackground === "function" &&
+      stream.isSupportVirtualBackground();
+    updateVbUi(isVbSupported);
 
     // ✅ Start audio muted — once only
     // Replace the startAudio block with this:
@@ -758,6 +774,10 @@ async function toggleVideo() {
       // Start video
       await stream.startVideo({
         hd: true,
+        virtualBackground: {
+          imageUrl:
+            "https://images.pexels.com/photos/8081419/pexels-photo-8081419.jpeg?_gl=1*1xpq3hg*_ga*MTMwMzMyNTEzNC4xNzcyNzc4MjA5*_ga_8JE65Q40S6*czE3NzUwNTQyMjIkbzIkZzEkdDE3NzUwNTQyMjQkajU4JGwwJGgw",
+        },
       });
       isVideoOn = true;
       document.getElementById("vid-on").style.display = "";
@@ -778,10 +798,10 @@ async function toggleVideo() {
         }
         // ✅ Clear stale video-player, attach fresh one (fixes 2nd-toggle bug)
         vpc.innerHTML = "";
-        const vp = createVideoElement();
+        const vp = document.createElement("video-player");
         vpc.appendChild(vp);
         try {
-          await stream.attachVideo(myId, 2, vp);
+          await stream.attachVideo(myId, 3, vp);
         } catch (e) {
           console.error(e);
         }
@@ -936,7 +956,9 @@ function handleShareStart(userId) {
     showShareContainer(`${dname(user)} is sharing`);
   } catch (e) {
     console.error("startShareView failed:", e);
-    alert("Unable to display shared screen. Please retry or ask the sharer to restart.");
+    alert(
+      "Unable to display shared screen. Please retry or ask the sharer to restart.",
+    );
   }
 }
 
@@ -952,6 +974,105 @@ function handleShareStop(userId) {
   stopIncomingShare();
 }
 /* ─── Screen share end ─── */
+
+function updateVbUi(supported) {
+  const sel = document.getElementById("vb-select");
+  const lbl = document.querySelector("label[for='vb-select']");
+  if (!sel || !lbl) return;
+  sel.disabled = !supported;
+  sel.style.display = supported ? "" : "none";
+  lbl.style.display = supported ? "" : "none";
+}
+
+/* ─── Virtual background ─── */
+function revokeResolvedBg() {
+  if (resolvedVirtualBgUrl && resolvedVirtualBgUrl.startsWith("blob:")) {
+    URL.revokeObjectURL(resolvedVirtualBgUrl);
+  }
+  resolvedVirtualBgUrl = null;
+}
+
+async function resolveVirtualBg(url) {
+  if (!url || url === "none" || url === "blur") return url;
+  if (url.startsWith("data:")) return url;
+  // Already a blob or same as current
+  if (url.startsWith("blob:")) return url;
+  try {
+    const res = await fetch(url, { mode: "cors" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    revokeResolvedBg();
+    resolvedVirtualBgUrl = URL.createObjectURL(blob);
+    return resolvedVirtualBgUrl;
+  } catch (e) {
+    console.warn("Failed to fetch virtual background image:", e);
+    return null;
+  }
+}
+
+async function setVirtualBackground(value) {
+  currentVirtualBg = value || "none";
+
+  const select = document.getElementById("vb-select");
+  if (select && select.value !== currentVirtualBg) {
+    select.value = currentVirtualBg;
+  }
+
+  if (!isVideoOn) {
+    pendingVirtualBg = currentVirtualBg;
+    return;
+  }
+
+  try {
+    await restartVideoWithBg(value);
+  } catch (e) {
+    console.error("VB change failed:", e);
+    alert("Failed to change background");
+  }
+}
+
+async function restartVideoWithBg(value) {
+  try {
+    console.log('value',value);
+    
+    await stream.stopVideo();
+    const myId = client.getCurrentUserInfo().userId;
+    const myInfo = client.getCurrentUserInfo();
+    // Start video
+    await stream.startVideo({
+      hd: true,
+      virtualBackground: {
+        imageUrl: value,
+      },
+    });
+
+    // Ensure my slot exists in grid and attach preview
+    if (!document.getElementById("user-" + myId)) {
+      await renderAudioOnlySlot(myId, myInfo);
+    }
+    const slot = document.getElementById("user-" + myId);
+    if (slot) {
+      let vp = slot.querySelector("video");
+      if (!vp) {
+        vp = createVideoElement();
+        slot.appendChild(vp);
+      }
+      // clear other children except video to avoid overlays blocking view
+      slot.querySelectorAll(":scope > *:not(video)").forEach((n) => n.remove());
+      try {
+        await stream.attachVideo(myId, 3, vp);
+      } catch (e) {
+        console.error("attachVideo after restart failed", e);
+      }
+      slot.classList.remove("video-off");
+    }
+    const ph = document.getElementById("empty-ph");
+    if (ph) ph.classList.remove("visible");
+  } catch (e) {
+    console.error("restartVideoWithBg failed:", e);
+    alert("Could not reapply background. " + (e?.message || e));
+  }
+}
 
 /* ─── Leave ─── */
 async function leaveSession() {
@@ -1037,5 +1158,6 @@ Object.assign(window, {
   toggleVideo,
   toggleShare,
   stopIncomingShare,
+  setVirtualBackground,
   leaveSession,
 });
