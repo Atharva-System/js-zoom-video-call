@@ -1033,41 +1033,13 @@ async function setVirtualBackground(value) {
 
 async function restartVideoWithBg(value) {
   try {
-    console.log('value',value);
-    
     await stream.stopVideo();
-    const myId = client.getCurrentUserInfo().userId;
-    const myInfo = client.getCurrentUserInfo();
-    // Start video
     await stream.startVideo({
       hd: true,
       virtualBackground: {
         imageUrl: value,
       },
     });
-
-    // Ensure my slot exists in grid and attach preview
-    if (!document.getElementById("user-" + myId)) {
-      await renderAudioOnlySlot(myId, myInfo);
-    }
-    const slot = document.getElementById("user-" + myId);
-    if (slot) {
-      let vp = slot.querySelector("video");
-      if (!vp) {
-        vp = createVideoElement();
-        slot.appendChild(vp);
-      }
-      // clear other children except video to avoid overlays blocking view
-      slot.querySelectorAll(":scope > *:not(video)").forEach((n) => n.remove());
-      try {
-        await stream.attachVideo(myId, 3, vp);
-      } catch (e) {
-        console.error("attachVideo after restart failed", e);
-      }
-      slot.classList.remove("video-off");
-    }
-    const ph = document.getElementById("empty-ph");
-    if (ph) ph.classList.remove("visible");
   } catch (e) {
     console.error("restartVideoWithBg failed:", e);
     alert("Could not reapply background. " + (e?.message || e));
