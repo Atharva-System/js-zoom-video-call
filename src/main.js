@@ -538,7 +538,7 @@ async function startSession() {
 
   try {
     const token =
-      "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcHBfa2V5IjoiaWpVTnpkNHZSQ1ZHeXFNV1ZXbkFZWlA1WW15NWQ2aFpOTkV5IiwidHBjIjoiVGVzdE9uZSIsInJvbGVfdHlwZSI6MCwidXNlcl9pZGVudGl0eSI6IkZsdXR0ZXIiLCJpYXQiOjE3NzUwNTAzNjcsImV4cCI6MTc3NTA1NzU2N30.U5ET89K5k6EoNd3UFI4cDogmKyAQeQJRMjqjv7QnG4c";
+      "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcHBfa2V5IjoiaWpVTnpkNHZSQ1ZHeXFNV1ZXbkFZWlA1WW15NWQ2aFpOTkV5IiwidHBjIjoiVGVzdE9uZSIsInJvbGVfdHlwZSI6MCwidXNlcl9pZGVudGl0eSI6IkZsdXR0ZXIiLCJpYXQiOjE3NzUwNTc1NTQsImV4cCI6MTc3NTA2NDc1NH0.pzn63dptqF9k2o8xcOzMGXbkhVqZBRYz1Hk_OcU6CSQ";
 
     client = ZoomVideo.createClient();
 
@@ -1034,16 +1034,41 @@ async function setVirtualBackground(value) {
 async function restartVideoWithBg(value) {
   try {
     await stream.stopVideo();
+    const myId = client.getCurrentUserInfo().userId;
+    const myInfo = client.getCurrentUserInfo();
     await stream.startVideo({
       hd: true,
       virtualBackground: {
         imageUrl: value,
       },
     });
-    const myId = client.getCurrentUserInfo().userId;
-    const myInfo = client.getCurrentUserInfo();
+    isVideoOn = true;
+    document.getElementById("vid-on").style.display = "";
+    document.getElementById("vid-off").style.display = "none";
+    document.getElementById("video-btn").classList.add("active");
+    setVideoOff(myId, null, false);
 
-    setVideoOff(myId, dname(myInfo), true);
+    // Ensure my slot exists in grid
+    if (!document.getElementById("user-" + myId)) {
+      await renderAudioOnlySlot(myId, myInfo);
+    }
+    const slot = document.getElementById("user-" + myId);
+    if (slot) {
+      let vpc = slot.querySelector("video-player-container");
+      if (!vpc) {
+        vpc = document.createElement("video-player-container");
+        slot.appendChild(vpc);
+      }
+      // ✅ Clear stale video-player, attach fresh one (fixes 2nd-toggle bug)
+      vpc.innerHTML = "";
+      const vp = document.createElement("video-player");
+      vpc.appendChild(vp);
+      try {
+        await stream.attachVideo(myId, 3, vp);
+      } catch (e) {
+        console.error(e);
+      }
+    }
   } catch (e) {
     console.error("restartVideoWithBg failed:", e);
     alert("Could not reapply background. " + (e?.message || e));
