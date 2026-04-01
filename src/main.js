@@ -1018,8 +1018,8 @@ async function setVirtualBackground(value) {
     select.value = currentVirtualBg;
   }
 
+  pendingVirtualBg = currentVirtualBg;
   if (!isVideoOn) {
-    pendingVirtualBg = currentVirtualBg;
     return;
   }
 
@@ -1040,6 +1040,10 @@ async function restartVideoWithBg(value) {
         imageUrl: value,
       },
     });
+    const myId = client.getCurrentUserInfo().userId;
+    const myInfo = client.getCurrentUserInfo();
+
+    setVideoOff(myId, dname(myInfo), true);
   } catch (e) {
     console.error("restartVideoWithBg failed:", e);
     alert("Could not reapply background. " + (e?.message || e));
