@@ -954,6 +954,11 @@ video-player-container video,
   border-color: #ff6b35;
 }
 
+.lt-select {
+  min-width: 140px;
+  margin-left: 6px;
+}
+
 .c-btn {
   width: 42px;
   height: 42px;

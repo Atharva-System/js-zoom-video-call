@@ -16,6 +16,9 @@ let isSharing = false;
 let activeShareUserId = null;
 let recordingClient = null;
 let isRecording = false;
+let ltClient = null;
+let isTranscribing = false;
+let isLtChanging = false;
 let currentVirtualBg = "none";
 let resolvedVirtualBgUrl = null;
 let localVideoTrack = null;
@@ -543,7 +546,7 @@ async function startSession() {
 
   try {
     const token =
-      "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcHBfa2V5IjoiaWpVTnpkNHZSQ1ZHeXFNV1ZXbkFZWlA1WW15NWQ2aFpOTkV5IiwidHBjIjoiVGVzdE9uZSIsInJvbGVfdHlwZSI6MSwidXNlcl9pZGVudGl0eSI6IkZsdXR0ZXIiLCJpYXQiOjE3NzUxMjU0MDMsImV4cCI6MTc3NTEzMjYwM30.tvxwPq7sR2rjiD8hS7iFDd71lcTB9z5kNS7ihQbgkRA";
+      "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcHBfa2V5IjoiaWpVTnpkNHZSQ1ZHeXFNV1ZXbkFZWlA1WW15NWQ2aFpOTkV5IiwidHBjIjoiVGVzdE9uZSIsInJvbGVfdHlwZSI6MSwidXNlcl9pZGVudGl0eSI6IkZsdXR0ZXIiLCJpYXQiOjE3NzUxMzAyMDcsImV4cCI6MTc3NTEzNzQwN30.1JezXbUPZmlqylxXmSPtjx6ZuJ3Jd2a4d5NZEYt5K5o";
 
     client = ZoomVideo.createClient();
 
@@ -611,6 +614,10 @@ async function startSession() {
     recordingClient = client.getRecordingClient?.() || null;
     updateRecordingUi(recordingClient?.canStartRecording?.());
 
+    // ✅ Live transcription client
+    ltClient = client.getLiveTranscriptionClient?.() || null;
+    updateLtUi(ltClient !== null);
+
     // ✅ Render ALL users including self, sorted by rank
     const myId = client.getCurrentUserInfo().userId;
     const myInfo = client.getCurrentUserInfo();
@@ -618,6 +625,11 @@ async function startSession() {
       myInfo.user_identity = `${serverIdentityPref}_${serverUserId}`;
     }
     await syncVisibleUsers();
+
+    const sessionInfo = client.getSessionInfo();
+    const sessionId = sessionInfo.sessionId;
+
+    console.log("Session ID:", sessionId);
 
     // Host-only controls
     // Replace the host-only block with this:
@@ -627,12 +639,16 @@ async function startSession() {
       document.getElementById("video-btn").style.display = "flex";
       document.getElementById("share-btn").style.display = "flex";
       document.getElementById("record-btn").style.display = "flex";
+      document.getElementById("lt-btn").style.display = "flex";
+      document.getElementById("lt-translate").style.display = "inline-block";
     } else {
       // Audience gets mic only (no camera in webinar)
       document.getElementById("audio-btn").style.display = "flex";
       document.getElementById("video-btn").style.display = "none";
       document.getElementById("share-btn").style.display = "none";
       document.getElementById("record-btn").style.display = "none";
+      document.getElementById("lt-btn").style.display = "none";
+      document.getElementById("lt-translate").style.display = "none";
     }
 
     // New user joins
@@ -643,6 +659,23 @@ async function startSession() {
       await syncVisibleUsers();
     });
 
+    client.on(`caption-status`, (payload) => {
+      const { sessionLanguage } = payload;
+      if (sessionLanguage) {
+        console.log(`Session language has been changed to ${sessionLanguage}`);
+      }
+    });
+    client.on(`caption-message`, (payload) => {
+      console.log(payload);
+      console.log(`${payload.displayName} said: ${payload.text}`);
+      console.log(
+        `${payload.displayName} said: ${payload.text}, translated to ${payload.language}`,
+      );
+    });
+
+    client.on(`caption-message`, (payload) => {
+      console.log(payload);
+    });
     // User state changes
     client.on("user-updated", async (payload) => {
       await syncManagers();
@@ -1016,9 +1049,77 @@ async function toggleRecording() {
     updateRecordingUi(true);
   } catch (err) {
     console.error("Recording toggle failed:", err);
-    alert("Unable to toggle cloud recording. Check host permissions and try again.");
+    alert(
+      "Unable to toggle cloud recording. Check host permissions and try again.",
+    );
   } finally {
     isToggleProcessing = false;
+  }
+}
+
+/* ─── Live transcription ─── */
+function updateLtUi(enabled) {
+  const btn = document.getElementById("lt-btn");
+  if (!btn) return;
+  btn.disabled = enabled === false;
+  btn.classList.toggle("disabled", enabled === false);
+  const onIcon = document.getElementById("lt-on");
+  const offIcon = document.getElementById("lt-off");
+  if (onIcon && offIcon) {
+    onIcon.style.display = isTranscribing ? "" : "none";
+    offIcon.style.display = isTranscribing ? "none" : "";
+  }
+  btn.classList.toggle("active", isTranscribing);
+}
+
+async function toggleTranscription() {
+  if (!ltClient || isToggleProcessing) return;
+  isToggleProcessing = true;
+  try {
+    if (isTranscribing) {
+      await ltClient.disableCaptions?.();
+      isTranscribing = false;
+    } else {
+      await ltClient.startLiveTranscription?.();
+      isTranscribing = true;
+    }
+    updateLtUi(true);
+  } catch (err) {
+    console.error("Live transcription toggle failed:", err);
+    alert(
+      "Unable to toggle live transcription. Host permission may be required.",
+    );
+  } finally {
+    isToggleProcessing = false;
+  }
+}
+
+async function changeTranslation(langCode) {
+  console.log("langCode", langCode);
+
+  if (!ltClient || isLtChanging) return;
+  isLtChanging = true;
+  try {
+    // Ensure transcription is running before setting translation
+    if (!isTranscribing) {
+      await ltClient.startLiveTranscription?.();
+      isTranscribing = true;
+      updateLtUi(true);
+    }
+
+    if (langCode === "off") {
+      await ltClient.setTranslationLanguage?.(null);
+    } else {
+      await ltClient.setTranslationLanguage?.(langCode);
+    }
+  } catch (err) {
+    console.error("Change translation failed:", err);
+    const reason =
+      err?.reason ||
+      "Could not change translation language. Please ensure transcription is enabled.";
+    alert(reason);
+  } finally {
+    isLtChanging = false;
   }
 }
 
@@ -1261,6 +1362,8 @@ function resetMeetingState() {
   stream = null;
   recordingClient = null;
   isRecording = false;
+  ltClient = null;
+  isTranscribing = false;
   isVideoOn = false;
   isAudioMuted = true;
   isAudioStarted = false;
@@ -1309,5 +1412,7 @@ Object.assign(window, {
   enterPictureInPicture,
   togglePictureInPicture,
   toggleRecording,
+  toggleTranscription,
+  changeTranslation,
   leaveSession,
 });

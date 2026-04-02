@@ -279,6 +279,59 @@
           </svg>
         </button>
 
+        <!-- Live Transcription -->
+        <button
+          class="c-btn"
+          id="lt-btn"
+          onclick="toggleTranscription()"
+          title="Live Transcription"
+          style="display: none"
+        >
+          <svg
+            id="lt-off"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <rect x="3" y="5" width="18" height="14" rx="2" ry="2" />
+            <circle cx="9" cy="12" r="2" />
+            <circle cx="15" cy="12" r="2" />
+          </svg>
+          <svg
+            id="lt-on"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            stroke="none"
+            style="display: none"
+          >
+            <rect x="3" y="5" width="18" height="14" rx="2" ry="2" />
+            <circle cx="9" cy="12" r="2" fill="#111214" />
+            <circle cx="15" cy="12" r="2" fill="#111214" />
+          </svg>
+        </button>
+
+        <select
+          id="lt-translate"
+          class="bg-select lt-select"
+          onchange="changeTranslation(this.value)"
+          title="Translation language"
+          style="display: none"
+        >
+          <option value="off" selected>No translation</option>
+          <option value="en">English (US)</option>
+          <option value="es">Spanish (ES)</option>
+          <option value="fr-ca">French (Canada)</option>
+          <option value="de">German (DE)</option>
+          <option value="pt">Portuguese (PT)</option>
+          <option value="zh-hant">Chinese (Simplified)</option>
+          <option value="ja">Japanese</option>
+          <option value="ko">Korean</option>
+          <option value="hi">Hindi</option>
+        </select>
+
         <!-- Question -->
         <button class="c-btn" title="Question">
           <svg
