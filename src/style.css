@@ -975,6 +975,11 @@ video-player-container video,
   color: #fff;
 }
 
+.c-btn.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .c-btn.active {
   background: #ff6b35;
   color: #fff;

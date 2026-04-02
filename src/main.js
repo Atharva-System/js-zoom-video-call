@@ -14,6 +14,8 @@ let isVideoOn = false; // ✅ camera OFF by default
 let isAudioStarted = false;
 let isSharing = false;
 let activeShareUserId = null;
+let recordingClient = null;
+let isRecording = false;
 let currentVirtualBg = "none";
 let resolvedVirtualBgUrl = null;
 let localVideoTrack = null;
@@ -541,7 +543,7 @@ async function startSession() {
 
   try {
     const token =
-      "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcHBfa2V5IjoiaWpVTnpkNHZSQ1ZHeXFNV1ZXbkFZWlA1WW15NWQ2aFpOTkV5IiwidHBjIjoiVGVzdE9uZSIsInJvbGVfdHlwZSI6MCwidXNlcl9pZGVudGl0eSI6IkZsdXR0ZXIiLCJpYXQiOjE3NzUxMjE5MjksImV4cCI6MTc3NTEyOTEyOX0.TOQ3QkANh8XVw16QnHx8UPBJOTtudRGDOCxxrZYZyg0";
+      "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcHBfa2V5IjoiaWpVTnpkNHZSQ1ZHeXFNV1ZXbkFZWlA1WW15NWQ2aFpOTkV5IiwidHBjIjoiVGVzdE9uZSIsInJvbGVfdHlwZSI6MSwidXNlcl9pZGVudGl0eSI6IkZsdXR0ZXIiLCJpYXQiOjE3NzUxMjU0MDMsImV4cCI6MTc3NTEzMjYwM30.tvxwPq7sR2rjiD8hS7iFDd71lcTB9z5kNS7ihQbgkRA";
 
     client = ZoomVideo.createClient();
 
@@ -605,6 +607,10 @@ async function startSession() {
     // ✅ Camera stays off
     isVideoOn = false;
 
+    // ✅ Recording client
+    recordingClient = client.getRecordingClient?.() || null;
+    updateRecordingUi(recordingClient?.canStartRecording?.());
+
     // ✅ Render ALL users including self, sorted by rank
     const myId = client.getCurrentUserInfo().userId;
     const myInfo = client.getCurrentUserInfo();
@@ -620,11 +626,13 @@ async function startSession() {
       document.getElementById("audio-btn").style.display = "flex";
       document.getElementById("video-btn").style.display = "flex";
       document.getElementById("share-btn").style.display = "flex";
+      document.getElementById("record-btn").style.display = "flex";
     } else {
       // Audience gets mic only (no camera in webinar)
       document.getElementById("audio-btn").style.display = "flex";
       document.getElementById("video-btn").style.display = "none";
       document.getElementById("share-btn").style.display = "none";
+      document.getElementById("record-btn").style.display = "none";
     }
 
     // New user joins
@@ -974,6 +982,46 @@ function handleShareStop(userId) {
 }
 /* ─── Screen share end ─── */
 
+/* ─── Cloud recording ─── */
+function updateRecordingUi(enabled) {
+  const btn = document.getElementById("record-btn");
+  if (!btn) return;
+  btn.disabled = enabled === false;
+  btn.classList.toggle("disabled", enabled === false);
+  const onIcon = document.getElementById("rec-on");
+  const offIcon = document.getElementById("rec-off");
+  if (onIcon && offIcon) {
+    onIcon.style.display = isRecording ? "" : "none";
+    offIcon.style.display = isRecording ? "none" : "";
+  }
+  btn.classList.toggle("active", isRecording);
+}
+
+async function toggleRecording() {
+  if (!recordingClient || isToggleProcessing) return;
+  isToggleProcessing = true;
+  try {
+    if (isRecording) {
+      await recordingClient.stopCloudRecording();
+      isRecording = false;
+    } else {
+      const allowed = recordingClient.canStartRecording?.();
+      if (allowed === false) {
+        alert("Cloud recording is not enabled for this session or role.");
+        return;
+      }
+      await recordingClient.startCloudRecording();
+      isRecording = true;
+    }
+    updateRecordingUi(true);
+  } catch (err) {
+    console.error("Recording toggle failed:", err);
+    alert("Unable to toggle cloud recording. Check host permissions and try again.");
+  } finally {
+    isToggleProcessing = false;
+  }
+}
+
 function updateVbUi(supported) {
   const sel = document.getElementById("vb-select");
   const lbl = document.querySelector("label[for='vb-select']");
@@ -1211,6 +1259,8 @@ function resetMeetingState() {
   isJoined = false;
   client = null;
   stream = null;
+  recordingClient = null;
+  isRecording = false;
   isVideoOn = false;
   isAudioMuted = true;
   isAudioStarted = false;
@@ -1230,6 +1280,11 @@ function resetMeetingState() {
   document.getElementById("vid-on").style.display = "none";
   document.getElementById("vid-off").style.display = "";
   document.getElementById("video-btn").classList.remove("active");
+  const recBtn = document.getElementById("record-btn");
+  if (recBtn) {
+    recBtn.classList.remove("active");
+    recBtn.style.display = "none";
+  }
   exitPictureInPicture();
   isToggleProcessing = false;
 }
@@ -1253,5 +1308,6 @@ Object.assign(window, {
   setVirtualBackground,
   enterPictureInPicture,
   togglePictureInPicture,
+  toggleRecording,
   leaveSession,
 });
