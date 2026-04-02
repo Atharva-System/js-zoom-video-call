@@ -19,6 +19,10 @@ let isRecording = false;
 let ltClient = null;
 let isTranscribing = false;
 let isLtChanging = false;
+let raisedHands = [];
+let isHandRaisedSelf = false;
+let cmdClient = null;
+const handNameMap = {};
 let currentVirtualBg = "none";
 let resolvedVirtualBgUrl = null;
 let localVideoTrack = null;
@@ -320,6 +324,17 @@ async function syncVisibleUsers() {
     ...document.querySelectorAll("#video-grid .video-slot"),
   ];
 
+  // Rebuild raised-hand order from visible users (preserve arrival order where possible)
+  const raisedSet = new Set(
+    users.filter((u) => getHandRaised(u)).map((u) => String(u.userId)),
+  );
+  const newHands = raisedHands.filter((id) => raisedSet.has(id));
+  for (const u of users) {
+    const id = String(u.userId);
+    if (raisedSet.has(id) && !newHands.includes(id)) newHands.push(id);
+  }
+  raisedHands = newHands;
+
   for (const slot of currentSlots) {
     const userId = String(slot.id.replace("user-", ""));
     if (!visibleIds.has(userId)) {
@@ -338,6 +353,7 @@ async function syncVisibleUsers() {
       } else {
         setVideoOff(myId, dname(selfPayload), !isVideoOn);
       }
+      setHandRaised(myId, getHandRaised(selfPayload));
 
       if (isVideoOn) {
         await renderVideo(myId, selfPayload);
@@ -353,10 +369,12 @@ async function syncVisibleUsers() {
       }
       setVideoOff(user.userId, dname(user), true);
     }
+    setHandRaised(user.userId, getHandRaised(user));
   }
 
   reorderGrid();
   updateGridLayout();
+  updateHandListUI();
 }
 
 /* ─── Priority rank for sorting user arrays ─── */
@@ -428,6 +446,13 @@ function buildSlot(userId, userPayload) {
   badge.textContent = dn + (isSelf ? " (You)" : "");
   slot.appendChild(badge);
 
+  // Raised hand badge (top-left)
+  const hb = document.createElement("div");
+  hb.className = "hand-badge";
+  hb.innerHTML = "✋";
+  hb.style.display = "none";
+  slot.appendChild(hb);
+
   // Initial muted state
   // In buildSlot(), replace the initMuted line with:
   const initMuted =
@@ -455,6 +480,85 @@ function setVideoOff(userId, dn, isOff) {
 function setMuted(userId, isMuted) {
   const slot = document.getElementById("user-" + userId);
   if (slot) slot.classList.toggle("is-muted", isMuted);
+}
+
+function setHandRaised(userId, raised) {
+  const slot = document.getElementById("user-" + userId);
+  if (!slot) return;
+  const hb = slot.querySelector(".hand-badge");
+  if (hb) hb.style.display = raised ? "" : "none";
+  slot.classList.toggle("hand-up", raised);
+}
+
+function getHandRaised(u) {
+  return Boolean(
+    u?.isHandRaised ??
+    u?.bHandRaised ??
+    u?.handRaised ??
+    u?.raisedHand ??
+    u?.isHandRaise,
+  );
+}
+
+function handleHandChange(userId, raised) {
+  const idStr = String(userId);
+  if (handNameMap[idStr]) {
+    // keep stored name
+  }
+  const idx = raisedHands.indexOf(idStr);
+  if (raised && idx === -1) {
+    raisedHands.push(idStr);
+  } else if (!raised && idx !== -1) {
+    raisedHands.splice(idx, 1);
+  }
+  setHandRaised(userId, raised);
+  updateHandListUI();
+}
+
+function updateHandListUI() {
+  const el = document.getElementById("hand-list");
+  if (!el) return;
+  if (!raisedHands.length) {
+    el.textContent = "";
+    el.style.display = "none";
+    return;
+  }
+  const firstId = raisedHands[0];
+  const firstUser =
+    client?.getUser?.(firstId) ||
+    client?.getAllUser?.().find((u) => String(u.userId) === firstId);
+  const name = dname(firstUser) || handNameMap[firstId] || `User ${firstId}`;
+  const rest = raisedHands.length - 1;
+  el.textContent = rest > 0 ? `${name} +${rest}` : name;
+  el.style.display = "inline-flex";
+}
+
+async function toggleRaiseHand() {
+  if (!client) return;
+  const me = client.getCurrentUserInfo?.();
+  if (!me) return;
+  const newState = !isHandRaisedSelf;
+  try {
+    await client.raiseHand?.(newState);
+    isHandRaisedSelf = newState;
+    handleHandChange(me.userId, newState);
+  } catch (err) {
+    console.error("toggle raise hand failed", err);
+  }
+}
+
+function handleCommandReceived({ command, senderId, senderName }) {
+  try {
+    const data = JSON.parse(command);
+    if (data?.type === "hand") {
+      const uid = data.userId || senderId;
+      const raised = Boolean(data.raised);
+      if (data.userName) handNameMap[String(uid)] = data.userName;
+      handleHandChange(uid, raised);
+    }
+  } catch (err) {
+    console.error("Failed to parse command", err);
+  }
 }
 
 /* ─── Remove slot ─── */
@@ -488,6 +592,7 @@ async function renderVideo(userId, userPayload = {}) {
   }
 
   slot.classList.remove("video-off");
+  setHandRaised(userId, getHandRaised(userPayload));
 
   let vpc = slot.querySelector("video-player-container");
   if (!vpc) {
@@ -522,6 +627,7 @@ async function renderAudioOnlySlot(userId, userPayload = {}) {
   const vpc = document.createElement("video-player-container");
   slot.appendChild(vpc);
   grid.appendChild(slot);
+  setHandRaised(userId, getHandRaised(userPayload));
   updateGridLayout();
   reorderGrid(); // ✅ keep order after each add
   const ph = document.getElementById("empty-ph");
@@ -546,7 +652,7 @@ async function startSession() {
 
   try {
     const token =
-      "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcHBfa2V5IjoiaWpVTnpkNHZSQ1ZHeXFNV1ZXbkFZWlA1WW15NWQ2aFpOTkV5IiwidHBjIjoiVGVzdE9uZSIsInJvbGVfdHlwZSI6MSwidXNlcl9pZGVudGl0eSI6IkZsdXR0ZXIiLCJpYXQiOjE3NzUxMzAyMDcsImV4cCI6MTc3NTEzNzQwN30.1JezXbUPZmlqylxXmSPtjx6ZuJ3Jd2a4d5NZEYt5K5o";
+      "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcHBfa2V5IjoiaWpVTnpkNHZSQ1ZHeXFNV1ZXbkFZWlA1WW15NWQ2aFpOTkV5IiwidHBjIjoiVGVzdE9uZSIsInJvbGVfdHlwZSI6MCwidXNlcl9pZGVudGl0eSI6IkZsdXR0ZXIiLCJpYXQiOjE3NzUxMzIyNjUsImV4cCI6MTc3NTEzOTQ2NX0.ffTmmID9u9uz5dilGwUXB-rBk-ctEQAzZOT2uiJqn3Q";
 
     client = ZoomVideo.createClient();
 
@@ -618,6 +724,8 @@ async function startSession() {
     ltClient = client.getLiveTranscriptionClient?.() || null;
     updateLtUi(ltClient !== null);
 
+    
+
     // ✅ Render ALL users including self, sorted by rank
     const myId = client.getCurrentUserInfo().userId;
     const myInfo = client.getCurrentUserInfo();
@@ -641,6 +749,7 @@ async function startSession() {
       document.getElementById("record-btn").style.display = "flex";
       document.getElementById("lt-btn").style.display = "flex";
       document.getElementById("lt-translate").style.display = "inline-block";
+      document.getElementById("hand-btn").style.display = "flex";
     } else {
       // Audience gets mic only (no camera in webinar)
       document.getElementById("audio-btn").style.display = "flex";
@@ -649,7 +758,18 @@ async function startSession() {
       document.getElementById("record-btn").style.display = "none";
       document.getElementById("lt-btn").style.display = "none";
       document.getElementById("lt-translate").style.display = "none";
+      document.getElementById("hand-btn").style.display = "flex";
     }
+
+    // Self hand init
+    isHandRaisedSelf = false;
+
+    // Command client (for cross-platform signals like hand raise)
+    cmdClient = client.getCommandClient?.() || null;
+
+    client.on(`command-channel-message`, (payload) => {
+      console.log(`command-channel-message Command from $payload}`);
+    });
 
     // New user joins
     client.on("user-added", async (payload) => {
@@ -718,13 +838,17 @@ async function startSession() {
         if (Object.prototype.hasOwnProperty.call(u, "bAudioOn")) {
           setMuted(u.userId, !u.bAudioOn);
         }
+        handleHandChange(u.userId, getHandRaised(u));
       }
       await syncVisibleUsers();
     });
 
     // User leaves
     client.on("user-removed", async (payload) => {
-      for (const u of payload) await removeVideoSlot(u.userId);
+      for (const u of payload) {
+        await removeVideoSlot(u.userId);
+        handleHandChange(u.userId, false);
+      }
       await syncVisibleUsers();
     });
 
@@ -1364,6 +1488,9 @@ function resetMeetingState() {
   isRecording = false;
   ltClient = null;
   isTranscribing = false;
+  cmdClient = null;
+  raisedHands = [];
+  Object.keys(handNameMap).forEach((k) => delete handNameMap[k]);
   isVideoOn = false;
   isAudioMuted = true;
   isAudioStarted = false;
@@ -1414,5 +1541,6 @@ Object.assign(window, {
   toggleRecording,
   toggleTranscription,
   changeTranslation,
+  toggleRaiseHand,
   leaveSession,
 });
