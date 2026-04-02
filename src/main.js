@@ -538,7 +538,7 @@ async function startSession() {
 
   try {
     const token =
-      "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcHBfa2V5IjoiaWpVTnpkNHZSQ1ZHeXFNV1ZXbkFZWlA1WW15NWQ2aFpOTkV5IiwidHBjIjoiVGVzdE9uZSIsInJvbGVfdHlwZSI6MCwidXNlcl9pZGVudGl0eSI6IkZsdXR0ZXIiLCJpYXQiOjE3NzUxMTU5NTUsImV4cCI6MTc3NTEyMzE1NX0.Kv9ZMEnhu3sPhzGyDVFC8_pQ99KTd-VmiBzOuRYbZfo";
+      "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcHBfa2V5IjoiaWpVTnpkNHZSQ1ZHeXFNV1ZXbkFZWlA1WW15NWQ2aFpOTkV5IiwidHBjIjoiVGVzdE9uZSIsInJvbGVfdHlwZSI6MCwidXNlcl9pZGVudGl0eSI6IkZsdXR0ZXIiLCJpYXQiOjE3NzUxMjE5MjksImV4cCI6MTc3NTEyOTEyOX0.TOQ3QkANh8XVw16QnHx8UPBJOTtudRGDOCxxrZYZyg0";
 
     client = ZoomVideo.createClient();
 
@@ -774,10 +774,6 @@ async function toggleVideo() {
       // Start video
       await stream.startVideo({
         hd: true,
-        virtualBackground: {
-          imageUrl:
-            "https://images.pexels.com/photos/8081419/pexels-photo-8081419.jpeg?_gl=1*1xpq3hg*_ga*MTMwMzMyNTEzNC4xNzcyNzc4MjA5*_ga_8JE65Q40S6*czE3NzUwNTQyMjIkbzIkZzEkdDE3NzUwNTQyMjQkajU4JGwwJGgw",
-        },
       });
       isVideoOn = true;
       document.getElementById("vid-on").style.display = "";
@@ -1031,21 +1027,23 @@ async function setVirtualBackground(value) {
   }
 }
 
+function getVBConfig(bg) {
+  if (!bg || bg === "none") return undefined;
+
+  return {
+    imageUrl: bg,
+  };
+}
+
 async function restartVideoWithBg(value) {
   try {
-    let isUndefined =
-      value === undefined || value === "undefined" || value === "none";
-
     await stream.stopVideo();
     const myId = client.getCurrentUserInfo().userId;
     const myInfo = client.getCurrentUserInfo();
     await stream.startVideo({
       hd: true,
-      virtualBackground: isUndefined
-        ? undefined
-        : {
-            imageUrl: value,
-          },
+      mirrored: false,
+      virtualBackground: getVBConfig(value),
     });
     isVideoOn = true;
     document.getElementById("vid-on").style.display = "";
