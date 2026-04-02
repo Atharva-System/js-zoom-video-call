@@ -1033,7 +1033,8 @@ async function setVirtualBackground(value) {
 
 async function restartVideoWithBg(value) {
   try {
-    let isUndefined = value === undefined || value === "undefined";
+    let isUndefined =
+      value === undefined || value === "undefined" || value === "none";
 
     await stream.stopVideo();
     const myId = client.getCurrentUserInfo().userId;
