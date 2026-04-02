@@ -538,7 +538,7 @@ async function startSession() {
 
   try {
     const token =
-      "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcHBfa2V5IjoiaWpVTnpkNHZSQ1ZHeXFNV1ZXbkFZWlA1WW15NWQ2aFpOTkV5IiwidHBjIjoiVGVzdE9uZSIsInJvbGVfdHlwZSI6MCwidXNlcl9pZGVudGl0eSI6IkZsdXR0ZXIiLCJpYXQiOjE3NzUwNTc1NTQsImV4cCI6MTc3NTA2NDc1NH0.pzn63dptqF9k2o8xcOzMGXbkhVqZBRYz1Hk_OcU6CSQ";
+      "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcHBfa2V5IjoiaWpVTnpkNHZSQ1ZHeXFNV1ZXbkFZWlA1WW15NWQ2aFpOTkV5IiwidHBjIjoiVGVzdE9uZSIsInJvbGVfdHlwZSI6MCwidXNlcl9pZGVudGl0eSI6IkZsdXR0ZXIiLCJpYXQiOjE3NzUxMDY0MDAsImV4cCI6MTc3NTExMzYwMH0.FVLMfLufLYXHwTcNuw_jf1Xxy7Gatajv9vTlvzpy7MA";
 
     client = ZoomVideo.createClient();
 
@@ -1033,14 +1033,18 @@ async function setVirtualBackground(value) {
 
 async function restartVideoWithBg(value) {
   try {
+    let isUndefined = value === undefined || value === "undefined";
+
     await stream.stopVideo();
     const myId = client.getCurrentUserInfo().userId;
     const myInfo = client.getCurrentUserInfo();
     await stream.startVideo({
       hd: true,
-      virtualBackground: {
-        imageUrl: value,
-      },
+      virtualBackground: isUndefined
+        ? undefined
+        : {
+            imageUrl: value,
+          },
     });
     isVideoOn = true;
     document.getElementById("vid-on").style.display = "";
