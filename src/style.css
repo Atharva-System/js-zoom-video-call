@@ -425,6 +425,19 @@ video-player-container video,
   text-align: center;
 }
 
+/* PiP placeholder (when container is moved to documentPictureInPicture) */
+#pip-placeholder {
+  min-height: 140px;
+  background: #1a1b23;
+  border: 1px dashed #252630;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  border-radius: 10px;
+}
+
 /* ── CHAT PANEL ── */
 #chat-panel {
   width: 0;

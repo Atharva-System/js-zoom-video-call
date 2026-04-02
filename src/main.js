@@ -20,6 +20,9 @@ let localVideoTrack = null;
 let pendingVirtualBg = null;
 let isVbSupported = false;
 let selfVideoEl = null;
+let pipWindow = null;
+let pipSourceEl = null;
+let pipPlaceholder = null;
 const CHAT_CLOSED = 0;
 const CHAT_NARROW = 1;
 const CHAT_WIDE = 2;
@@ -1118,6 +1121,90 @@ function leaveSessionImmediate() {
   } catch (e) {}
   resetMeetingState();
 }
+// Picture-in-Picture tracking refs
+async function enterPictureInPicture(videoContainer) {
+  if (
+    window.document.pictureInPictureEnabled &&
+    "documentPictureInPicture" in window
+  ) {
+    try {
+      pipWindow = await window.documentPictureInPicture.requestWindow();
+      pipSourceEl = videoContainer || null;
+      // Insert a stub after the container has been transferred to the PipWindow.
+      pipPlaceholder = document.createElement("div");
+      pipPlaceholder.textContent =
+        "The element has been transferred to the PiP window";
+      pipPlaceholder.id = "pip-placeholder";
+      if (videoContainer) {
+        // Ensure styles are applied
+        Array.from(document.styleSheets).forEach((styleSheet) => {
+          try {
+            Array.from(styleSheet.cssRules).forEach((rule) => {
+              const style = document.createElement("style");
+              style.textContent = rule.cssText;
+              pipWindow.document.head.appendChild(style);
+            });
+          } catch (err) {
+            // Skip CORS-protected stylesheets
+          }
+        });
+        // Move the video container into the PiP window
+        videoContainer.parentNode?.insertBefore(pipPlaceholder, videoContainer);
+        pipWindow.document.body.appendChild(videoContainer);
+
+        pipWindow.addEventListener("pagehide", exitPictureInPicture);
+        pipWindow.addEventListener("unload", exitPictureInPicture);
+      }
+    } catch (error) {
+      console.error("Failed to enter Picture-in-Picture mode:", error);
+    }
+  } else {
+    console.warn("Picture-in-Picture is not supported by your browser.");
+  }
+}
+
+function getPiPSourceElement() {
+  const shareEl = document.getElementById("share-container");
+  const shareVisible = shareEl && !shareEl.classList.contains("share-hidden");
+  if (shareVisible) return shareEl;
+
+  const firstSlot = document.querySelector("#video-grid .video-slot");
+  if (firstSlot) return firstSlot;
+
+  return document.getElementById("video-grid");
+}
+
+async function togglePictureInPicture() {
+  const btn = document.getElementById("pip-btn");
+  if (pipWindow) {
+    exitPictureInPicture();
+    if (btn) btn.classList.remove("active");
+    return;
+  }
+  const source = getPiPSourceElement();
+  if (!source) return;
+  await enterPictureInPicture(source);
+  if (pipWindow && btn) btn.classList.add("active");
+}
+
+function exitPictureInPicture() {
+  if (!pipWindow || !pipSourceEl) return;
+  try {
+    // Move the element back to its original place
+    if (pipPlaceholder?.parentNode) {
+      pipPlaceholder.parentNode.insertBefore(pipSourceEl, pipPlaceholder);
+      pipPlaceholder.remove();
+    }
+  } catch (err) {
+    console.error("Failed to restore PiP element:", err);
+  } finally {
+    pipWindow = null;
+    pipSourceEl = null;
+    pipPlaceholder = null;
+    const btn = document.getElementById("pip-btn");
+    if (btn) btn.classList.remove("active");
+  }
+}
 
 function resetMeetingState() {
   stopTimer();
@@ -1143,6 +1230,7 @@ function resetMeetingState() {
   document.getElementById("vid-on").style.display = "none";
   document.getElementById("vid-off").style.display = "";
   document.getElementById("video-btn").classList.remove("active");
+  exitPictureInPicture();
   isToggleProcessing = false;
 }
 
@@ -1163,5 +1251,7 @@ Object.assign(window, {
   toggleShare,
   stopIncomingShare,
   setVirtualBackground,
+  enterPictureInPicture,
+  togglePictureInPicture,
   leaveSession,
 });
