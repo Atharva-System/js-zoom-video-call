@@ -16,6 +16,7 @@ let isSharing = false;
 let activeShareUserId = null;
 let recordingClient = null;
 let isRecording = false;
+let isRecordingPaused = false;
 let ltClient = null;
 let isTranscribing = false;
 let isLtChanging = false;
@@ -1146,10 +1147,11 @@ function updateRecordingUi(enabled) {
   const onIcon = document.getElementById("rec-on");
   const offIcon = document.getElementById("rec-off");
   if (onIcon && offIcon) {
-    onIcon.style.display = isRecording ? "" : "none";
-    offIcon.style.display = isRecording ? "none" : "";
+    const isActiveRecording = isRecording && !isRecordingPaused;
+    onIcon.style.display = isActiveRecording ? "" : "none";
+    offIcon.style.display = isActiveRecording ? "none" : "";
   }
-  btn.classList.toggle("active", isRecording);
+  btn.classList.toggle("active", isRecording && !isRecordingPaused);
 }
 
 async function getStatusOfRecording() {
@@ -1157,19 +1159,24 @@ async function getStatusOfRecording() {
   console.log(`Recording Status ==> ${status}`);
 }
 
+async function stopRecording() {
+  await recordingClient.stopCloudRecording();
+  isRecording = false;
+  isRecordingPaused = false;
+}
+
 async function toggleRecording() {
   if (!recordingClient || isToggleProcessing) return;
   isToggleProcessing = true;
   try {
     if (isRecording) {
-      // Pause
-      // await recordingClient.pauseCloudRecording();
-
-      // Resume
-      // await recordingClient.resumeCloudRecording();
-
-      await recordingClient.stopCloudRecording();
-      isRecording = false;
+      if (isRecordingPaused) {
+        await recordingClient.resumeCloudRecording();
+        isRecordingPaused = false;
+      } else {
+        await recordingClient.pauseCloudRecording();
+        isRecordingPaused = true;
+      }
     } else {
       const allowed = recordingClient.canStartRecording?.();
       if (allowed === false) {
@@ -1178,6 +1185,7 @@ async function toggleRecording() {
       }
       await recordingClient.startCloudRecording();
       isRecording = true;
+      isRecordingPaused = false;
     }
     updateRecordingUi(true);
     getStatusOfRecording();
@@ -1496,6 +1504,7 @@ function resetMeetingState() {
   stream = null;
   recordingClient = null;
   isRecording = false;
+  isRecordingPaused = false;
   ltClient = null;
   isTranscribing = false;
   cmdClient = null;
@@ -1510,6 +1519,7 @@ function resetMeetingState() {
   updateShareButton(false);
   document.getElementById("video-grid").innerHTML = "";
   updateGridLayout();
+  stopRecording();
   document.getElementById("join-container").style.display = "flex";
   document.getElementById("webinar-header").style.display = "none";
   document.getElementById("controls").style.display = "none";
