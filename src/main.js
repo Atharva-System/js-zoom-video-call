@@ -724,8 +724,6 @@ async function startSession() {
     ltClient = client.getLiveTranscriptionClient?.() || null;
     updateLtUi(ltClient !== null);
 
-    
-
     // ✅ Render ALL users including self, sorted by rank
     const myId = client.getCurrentUserInfo().userId;
     const myInfo = client.getCurrentUserInfo();
@@ -1154,11 +1152,22 @@ function updateRecordingUi(enabled) {
   btn.classList.toggle("active", isRecording);
 }
 
+async function getStatusOfRecording() {
+  const status = recordingClient.getCloudRecordingStatus();
+  console.log(`Recording Status ==> ${status}`);
+}
+
 async function toggleRecording() {
   if (!recordingClient || isToggleProcessing) return;
   isToggleProcessing = true;
   try {
     if (isRecording) {
+      // Pause
+      // await recordingClient.pauseCloudRecording();
+
+      // Resume
+      // await recordingClient.resumeCloudRecording();
+
       await recordingClient.stopCloudRecording();
       isRecording = false;
     } else {
@@ -1171,6 +1180,7 @@ async function toggleRecording() {
       isRecording = true;
     }
     updateRecordingUi(true);
+    getStatusOfRecording();
   } catch (err) {
     console.error("Recording toggle failed:", err);
     alert(
