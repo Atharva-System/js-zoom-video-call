@@ -1257,12 +1257,18 @@ body {
   flex-direction: column;
   gap: 16px;
   position: relative;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .participants-container {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .participant-card {
