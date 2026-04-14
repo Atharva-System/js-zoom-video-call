@@ -960,6 +960,47 @@ video-player-container video,
   padding: 0 20px;
 }
 
+.kick-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #0f1520;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid #22324a;
+}
+
+#remove-user-id {
+  width: 120px;
+  background: #0b101a;
+  color: #e8f0ff;
+  border: 1px solid #22324a;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  outline: none;
+}
+
+#remove-user-id:focus {
+  border-color: #ff6b35;
+}
+
+.kick-btn {
+  background: #dc1e1e;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.kick-btn:hover {
+  background: #b81818;
+}
+
 .bg-label {
   color: #9fb1c8;
   font-size: 12px;
@@ -1152,4 +1193,100 @@ body.chat-only-mode #qa-sponsored-msgs {
 
 .input-row {
   flex-shrink: 0;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: sans-serif;
+}
+
+body {
+  background: linear-gradient(180deg, #1c1c1e, #2c2c2e);
+  color: #fff;
+  height: 100vh;
+}
+
+/* Container */
+
+
+/* Header */
+.header {
+  /* display: flex;
+  align-items: center;
+  margin-bottom: 20px; */
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 50px;
+}
+
+.back-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid #444;
+  background: transparent;
+  color: #fff;
+  font-size: 18px;
+  margin-right: 10px;
+  cursor: pointer;
+  position: absolute;
+  left: 0;
+}
+
+/* Title perfectly centered */
+.title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.participants-container {
+  padding: 20px;
+}
+
+/* Card */
+.participant-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  backdrop-filter: blur(10px);
+}
+
+/* Left */
+.left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+}
+
+.name {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* Actions */
+.actions {
+  display: flex;
+  gap: 12px;
+}
+
+.icon {
+  font-size: 18px;
+  cursor: pointer;
 }

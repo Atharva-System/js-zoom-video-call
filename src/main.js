@@ -58,6 +58,30 @@ const coHosts = [
 
 const MAX_VISIBLE_SLOTS = 4;
 
+/* ─── Remove user (kick) ─── */
+async function removeUserById() {
+  if (!client) return;
+  const input = document.getElementById("remove-user-id");
+  const raw = input?.value?.trim();
+  if (!raw) return alert("Enter a userId to remove");
+
+  const userId = Number(raw);
+  if (Number.isNaN(userId)) return alert("User ID must be numeric");
+
+  const current = client.getCurrentUserInfo();
+  if (!current?.isHost) return alert("Only host can remove participants");
+
+  try {
+    await client.removeUser(userId);
+    input.value = "";
+    console.log(`Removed user ${userId}`);
+  } catch (err) {
+    console.error("Failed to remove user", err);
+    const reason = err?.reason || err?.message || "unknown error";
+    alert(`Could not remove user: ${reason}`);
+  }
+}
+
 /* ─── Timer ─── */
 function startTimer() {
   const t0 = Date.now();
@@ -749,6 +773,9 @@ async function startSession() {
       document.getElementById("lt-btn").style.display = "flex";
       document.getElementById("lt-translate").style.display = "inline-block";
       document.getElementById("hand-btn").style.display = "flex";
+      // Show kick controls for host only
+      const kick = document.getElementById("remove-user-controls");
+      if (kick) kick.style.display = "flex";
     } else {
       // Audience gets mic only (no camera in webinar)
       document.getElementById("audio-btn").style.display = "flex";
@@ -758,6 +785,8 @@ async function startSession() {
       document.getElementById("lt-btn").style.display = "none";
       document.getElementById("lt-translate").style.display = "none";
       document.getElementById("hand-btn").style.display = "flex";
+      const kick = document.getElementById("remove-user-controls");
+      if (kick) kick.style.display = "none";
     }
 
     // Self hand init
@@ -1563,4 +1592,5 @@ Object.assign(window, {
   changeTranslation,
   toggleRaiseHand,
   leaveSession,
+  removeUserById,
 });
