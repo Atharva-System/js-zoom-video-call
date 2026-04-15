@@ -133,26 +133,25 @@
               </svg>
             </button>
 
-            <!-- Virtual background -->
-            <label class="bg-label" for="vb-select">BG</label>
-            <select
-              id="vb-select"
-              class="bg-select"
-              onchange="setVirtualBackground(this.value)"
+            <button
+              class="c-btn"
+              id="vb-modal-btn"
+              onclick="openVirtualBGModal()"
               title="Virtual background"
             >
-              <option value="none" selected>None</option>
-              <option value="blur">Blur</option>
-              <option value="src/assets/image_1.png">Image 1</option>
-              <option value="src/assets/image_2.png">Image 2</option>
-              <option value="src/assets/image_3.png">Image 3</option>
-              <option value="src/assets/image_4.png">Image 4</option>
-              <option value="src/assets/image_5.png">Image 5</option>
-              <option value="src/assets/image_6.png">Image 6</option>
-              <option value="src/assets/image_7.png">Image 7</option>
-              <option value="src/assets/image_8.png">Image 8</option>
-              <option value="src/assets/image_9.png">Image 9</option>
-            </select>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="3" y="4" width="18" height="14" rx="2" ry="2" />
+                <path d="M7 14l3-3 3 3 4-5 2 3" />
+                <path d="M8 8h.01" />
+              </svg>
+            </button>
 
             <!-- Mic (host only) -->
             <button
@@ -551,6 +550,18 @@
               <button class="modal-cancel" id="confirm-cancel">Cancel</button>
               <button class="modal-remove" id="confirm-remove">Remove</button>
             </div>
+          </div>
+        </div>
+
+        <div class="vb-modal" id="vb-modal">
+          <div class="vb-modal-card">
+            <div class="modal-header">
+              <div>Virtual background</div>
+              <button class="modal-close" id="vb-close" aria-label="Close">
+                ✕
+              </button>
+            </div>
+            <div class="vb-grid" id="vb-grid"></div>
           </div>
         </div>
       </aside>

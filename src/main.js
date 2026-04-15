@@ -29,6 +29,7 @@ let resolvedVirtualBgUrl = null;
 let localVideoTrack = null;
 let pendingVirtualBg = null;
 let isVbSupported = false;
+
 let selfVideoEl = null;
 let pipWindow = null;
 let pipSourceEl = null;
@@ -57,7 +58,7 @@ const coHosts = [
 ];
 
 const MAX_VISIBLE_SLOTS = 4;
-
+const MIN_VB_GRID_ITEMS = 12;
 /* ─── Remove user (kick) ─── */
 async function removeUserById() {
   if (!client) return;
@@ -661,6 +662,12 @@ async function renderAudioOnlySlot(userId, userPayload = {}) {
 
 /* ─── Join ─── */
 async function startSession() {
+  // Show meeting UI
+  document.getElementById("join-container").style.display = "none";
+  document.getElementById("webinar-header").style.display = "block";
+  document.getElementById("main-container").style.display = "flex";
+  document.getElementById("controls").style.display = "flex";
+  return;
   if (!ZoomVideo) {
     alert(
       "Zoom Video SDK not loaded. Ensure https://source.zoom.us/videosdk/zoom-video-2.3.14.min.js is included before src/main.js.",
@@ -768,6 +775,9 @@ async function startSession() {
       // Host gets both mic and camera
       document.getElementById("audio-btn").style.display = "flex";
       document.getElementById("video-btn").style.display = "flex";
+      document.getElementById("vb-modal-btn").style.display = isVbSupported
+        ? "flex"
+        : "none";
       document.getElementById("share-btn").style.display = "flex";
       document.getElementById("record-btn").style.display = "flex";
       document.getElementById("lt-btn").style.display = "flex";
@@ -780,6 +790,7 @@ async function startSession() {
       // Audience gets mic only (no camera in webinar)
       document.getElementById("audio-btn").style.display = "flex";
       document.getElementById("video-btn").style.display = "none";
+      document.getElementById("vb-modal-btn").style.display = "none";
       document.getElementById("share-btn").style.display = "none";
       document.getElementById("record-btn").style.display = "none";
       document.getElementById("lt-btn").style.display = "none";
@@ -970,6 +981,8 @@ async function toggleVideo() {
       // Start video
       await stream.startVideo({
         hd: true,
+        mirrored: false,
+        virtualBackground: getVBConfig(pendingVirtualBg),
       });
       isVideoOn = true;
       document.getElementById("vid-on").style.display = "";
@@ -1294,56 +1307,225 @@ async function changeTranslation(langCode) {
   }
 }
 
+// Virtual BG
 function updateVbUi(supported) {
-  const sel = document.getElementById("vb-select");
-  const lbl = document.querySelector("label[for='vb-select']");
-  if (!sel || !lbl) return;
-  sel.disabled = !supported;
-  sel.style.display = supported ? "" : "none";
-  lbl.style.display = supported ? "" : "none";
+  const modalBtn = document.getElementById("vb-modal-btn");
+  if (modalBtn) {
+    modalBtn.disabled = !supported;
+    modalBtn.style.display = supported ? "flex" : "none";
+  }
 }
 
-/* ─── Virtual background ─── */
-function revokeResolvedBg() {
-  if (resolvedVirtualBgUrl && resolvedVirtualBgUrl.startsWith("blob:")) {
-    URL.revokeObjectURL(resolvedVirtualBgUrl);
-  }
-  resolvedVirtualBgUrl = null;
+function getVirtualBgPreviewSrc(value) {
+  if (!value || value === "none" || value === "blur") return "";
+  return value;
 }
 
-async function resolveVirtualBg(url) {
-  if (!url || url === "none" || url === "blur") return url;
-  if (url.startsWith("data:")) return url;
-  // Already a blob or same as current
-  if (url.startsWith("blob:")) return url;
-  try {
-    const res = await fetch(url, { mode: "cors" });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const blob = await res.blob();
-    revokeResolvedBg();
-    resolvedVirtualBgUrl = URL.createObjectURL(blob);
-    return resolvedVirtualBgUrl;
-  } catch (e) {
-    console.warn("Failed to fetch virtual background image:", e);
-    return null;
+function syncVirtualBgSelection() {
+  document.querySelectorAll("#vb-grid .vb-option").forEach((button) => {
+    button.classList.toggle(
+      "active",
+      button.dataset.value === currentVirtualBg && !button.disabled,
+    );
+  });
+}
+
+function buildVirtualBgGrid() {
+  const grid = document.getElementById("vb-grid");
+  if (!grid) return;
+
+  const options = [
+    {
+      label: "None",
+      value: "none",
+      type: "none",
+    },
+    {
+      label: "Blur",
+      value: "blur",
+      type: "blur",
+    },
+    {
+      label: "Image 1",
+      value:
+        "https://socialitelive-public.s3.eu-west-1.amazonaws.com/preview_virtualbackgrounds/image_1_150.png",
+      type: "image",
+      bgImage: "https://socialitelive-public.s3.eu-west-1.amazonaws.com/original_virtualbackgrounds/image_1.png"
+    },
+    {
+      label: "Image 2",
+      value:
+        "https://socialitelive-public.s3.eu-west-1.amazonaws.com/preview_virtualbackgrounds/image_2_150.png",
+      type: "image",
+      bgImage: "https://socialitelive-public.s3.eu-west-1.amazonaws.com/original_virtualbackgrounds/image_2.png"
+    },
+    {
+      label: "Image 3",
+      value:
+        "https://socialitelive-public.s3.eu-west-1.amazonaws.com/preview_virtualbackgrounds/image_3_150.png",
+      type: "image",
+      bgImage: "https://socialitelive-public.s3.eu-west-1.amazonaws.com/original_virtualbackgrounds/image_3.png"
+    },
+    {
+      label: "Image 4",
+      value:
+        "https://socialitelive-public.s3.eu-west-1.amazonaws.com/preview_virtualbackgrounds/image_4_150.png",
+      type: "image",
+      bgImage: "https://socialitelive-public.s3.eu-west-1.amazonaws.com/original_virtualbackgrounds/image_4.png"
+    },
+    {
+      label: "Image 5",
+      value:
+        "https://socialitelive-public.s3.eu-west-1.amazonaws.com/preview_virtualbackgrounds/image_5_150.png",
+      type: "image",
+      bgImage: "https://socialitelive-public.s3.eu-west-1.amazonaws.com/original_virtualbackgrounds/image_5.png"
+    },
+    {
+      label: "Image 6",
+      value:
+        "https://socialitelive-public.s3.eu-west-1.amazonaws.com/preview_virtualbackgrounds/image_6_150.png",
+      type: "image",
+      bgImage: "https://socialitelive-public.s3.eu-west-1.amazonaws.com/original_virtualbackgrounds/image_6.png"
+    },
+    {
+      label: "Image 7",
+      value:
+        "https://socialitelive-public.s3.eu-west-1.amazonaws.com/preview_virtualbackgrounds/image_7_150.png",
+      type: "image",
+      bgImage: "https://socialitelive-public.s3.eu-west-1.amazonaws.com/original_virtualbackgrounds/image_7.png"
+    },
+    {
+      label: "Image 8",
+      value:
+        "https://socialitelive-public.s3.eu-west-1.amazonaws.com/preview_virtualbackgrounds/image_8_150.png",
+      type: "image",
+      bgImage: "https://socialitelive-public.s3.eu-west-1.amazonaws.com/original_virtualbackgrounds/image_8.png"
+    },
+    {
+      label: "Image 9",
+      value:
+        "https://socialitelive-public.s3.eu-west-1.amazonaws.com/preview_virtualbackgrounds/image_9_150.png",
+      type: "image",
+      bgImage: "https://socialitelive-public.s3.eu-west-1.amazonaws.com/original_virtualbackgrounds/image_9.png"
+    },
+    {
+      label: "Image 10",
+      value:
+        "https://socialitelive-public.s3.eu-west-1.amazonaws.com/preview_virtualbackgrounds/image_10_150.png",
+      type: "image",
+      bgImage: "https://socialitelive-public.s3.eu-west-1.amazonaws.com/original_virtualbackgrounds/image_10.png"
+    },
+  ];
+  grid.innerHTML = "";
+
+  options.forEach((option) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "vb-option";
+    button.dataset.value = option.value;
+    button.setAttribute("aria-label", option.label);
+
+    const preview = document.createElement("span");
+    preview.className = "vb-preview";
+
+    if (option.type === "image") {
+      const image = document.createElement("img");
+      image.src = getVirtualBgPreviewSrc(option.value);
+      image.alt = option.label;
+      image.crossOrigin = "anonymous";
+      image.decoding = "async";
+      image.loading = "lazy";
+      preview.appendChild(image);
+    } else {
+      preview.classList.add(
+        option.type === "blur" ? "vb-preview-blur" : "vb-preview-none",
+      );
+      preview.dataset.label = option.label;
+    }
+
+    const label = document.createElement("span");
+    label.className = "vb-option-name";
+    label.textContent = option.label;
+
+    button.append(preview, label);
+    grid.appendChild(button);
+  });
+
+  for (let index = options.length; index < MIN_VB_GRID_ITEMS; index += 1) {
+    const placeholder = document.createElement("button");
+    placeholder.type = "button";
+    placeholder.className = "vb-option";
+    placeholder.disabled = true;
+    placeholder.setAttribute("aria-hidden", "true");
+
+    const preview = document.createElement("span");
+    preview.className = "vb-preview vb-preview-empty";
+    preview.dataset.label = "Soon";
+
+    const label = document.createElement("span");
+    label.className = "vb-option-name";
+    label.textContent = "Coming soon";
+
+    placeholder.append(preview, label);
+    grid.appendChild(placeholder);
   }
+
+  syncVirtualBgSelection();
+}
+
+function openVirtualBGModal() {
+  buildVirtualBgGrid();
+  const modal = document.getElementById("vb-modal");
+  if (!modal) return;
+  modal.classList.remove("closing");
+  modal.classList.add("show");
+}
+
+function closeVirtualBGModal() {
+  const modal = document.getElementById("vb-modal");
+  if (!modal) return;
+  modal.classList.add("closing");
+  setTimeout(() => {
+    modal.classList.remove("show", "closing");
+  }, 180);
+}
+
+function initVirtualBgModal() {
+  const modal = document.getElementById("vb-modal");
+  const closeBtn = document.getElementById("vb-close");
+  const grid = document.getElementById("vb-grid");
+  if (!modal || !closeBtn || !grid) return;
+
+  closeBtn.addEventListener("click", closeVirtualBGModal);
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal) closeVirtualBGModal();
+  });
+  grid.addEventListener("click", (event) => {
+    const option = event.target.closest(".vb-option");
+    if (!option || option.disabled) return;
+    setVirtualBackground(option.dataset.value);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && modal.classList.contains("show")) {
+      closeVirtualBGModal();
+    }
+  });
 }
 
 async function setVirtualBackground(value) {
   currentVirtualBg = value || "none";
 
-  const select = document.getElementById("vb-select");
-  if (select && select.value !== currentVirtualBg) {
-    select.value = currentVirtualBg;
-  }
+  syncVirtualBgSelection();
 
   pendingVirtualBg = currentVirtualBg;
+  console.log("pendingVirtualBg", pendingVirtualBg);
   if (!isVideoOn) {
     return;
   }
 
   try {
     await restartVideoWithBg(value);
+    closeVirtualBGModal();
   } catch (e) {
     console.error("VB change failed:", e);
     alert("Failed to change background");
@@ -1400,6 +1582,8 @@ async function restartVideoWithBg(value) {
     alert("Could not reapply background. " + (e?.message || e));
   }
 }
+
+initVirtualBgModal();
 
 /* ─── Leave ─── */
 async function leaveSession() {
@@ -1559,6 +1743,8 @@ function resetMeetingState() {
   document.getElementById("vid-on").style.display = "none";
   document.getElementById("vid-off").style.display = "";
   document.getElementById("video-btn").classList.remove("active");
+  document.getElementById("vb-modal-btn")?.style.display = "none";
+  document.getElementById("vb-modal")?.classList.remove("show", "closing");
   const recBtn = document.getElementById("record-btn");
   if (recBtn) {
     recBtn.classList.remove("active");
@@ -1593,4 +1779,5 @@ Object.assign(window, {
   toggleRaiseHand,
   leaveSession,
   removeUserById,
+  openVirtualBGModal,
 });
