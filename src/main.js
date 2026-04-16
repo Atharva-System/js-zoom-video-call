@@ -41,19 +41,19 @@ let chatState = CHAT_CLOSED;
 let isToggleProcessing = false;
 let isJoined = false;
 let timerInterval = null;
-const sessionName = "TestOne";
-const userName = generateHostName();
+const sessionName = "Love in Conversation";
+const userName = 'Flutter';
 const role = 1;
 const userIdentity = "host_fc43d7de-54e0-4e0d-96b9-6b6b7e77ba34";
 const userUuid = "019d2400-0b83-73b6-a2fb-fe33cee9098d";
 const serverIdentityPref = "host";
 const serverUserId = "019d2400-0b83-73b6-a2fb-fe33cee9098d";
-const sessionHostName = "Test User";
+const sessionHostName = "Love in Conversation";
 const sessionCoHostNames = ["Smit", "Ravi"];
 
-const REAL_HOST_ID = "019d2400-0b83-73b6-a2fb-fe33cee9098d";
+const REAL_HOST_ID = "019d24ad-8c59-713e-8074-d9cc5a05c4bd";
 const coHosts = [
-  "019d2905-a5e6-711f-a23b-f1bf8afe24d2",
+  "019d76d8-b68c-73a6-a66e-4f284edadefd",
   "019d24af-443d-71b5-8a2e-ac1868749a6d",
 ];
 
@@ -663,11 +663,7 @@ async function renderAudioOnlySlot(userId, userPayload = {}) {
 /* ─── Join ─── */
 async function startSession() {
   // Show meeting UI
-  document.getElementById("join-container").style.display = "none";
-  document.getElementById("webinar-header").style.display = "block";
-  document.getElementById("main-container").style.display = "flex";
-  document.getElementById("controls").style.display = "flex";
-  return;
+
   if (!ZoomVideo) {
     alert(
       "Zoom Video SDK not loaded. Ensure https://source.zoom.us/videosdk/zoom-video-2.3.14.min.js is included before src/main.js.",
@@ -683,8 +679,7 @@ async function startSession() {
   document.getElementById("start-btn").textContent = "Joining…";
 
   try {
-    const token =
-      "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcHBfa2V5IjoiaWpVTnpkNHZSQ1ZHeXFNV1ZXbkFZWlA1WW15NWQ2aFpOTkV5IiwidHBjIjoiVGVzdE9uZSIsInJvbGVfdHlwZSI6MCwidXNlcl9pZGVudGl0eSI6IkZsdXR0ZXIiLCJpYXQiOjE3NzUxMzIyNjUsImV4cCI6MTc3NTEzOTQ2NX0.ffTmmID9u9uz5dilGwUXB-rBk-ctEQAzZOT2uiJqn3Q";
+    const token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcHBfa2V5IjoiaWpVTnpkNHZSQ1ZHeXFNV1ZXbkFZWlA1WW15NWQ2aFpOTkV5IiwidHBjIjoiTG92ZSBpbiBDb252ZXJzYXRpb24iLCJyb2xlX3R5cGUiOjEsInVzZXJfaWRlbnRpdHkiOiJGbHV0dGVyIiwiaWF0IjoxNzc2MzI0NDU1LCJleHAiOjE3NzYzMzE2NTV9.xPXs4VhN4k3FSUa_HCUO5Q7X2l8UM5SG9vHP0jfK_Dc";
 
     client = ZoomVideo.createClient();
 
@@ -1601,6 +1596,7 @@ async function leaveSession() {
   isToggleProcessing = true;
   try {
     if (stream) {
+      if(isRecording || isRecordingPaused) await stopRecording();
       if (isSharing) await stopLocalShare();
       if (isVideoOn) await stream.stopVideo();
       if (isAudioStarted) await stream.stopAudio();
@@ -1721,6 +1717,7 @@ function exitPictureInPicture() {
 }
 
 function resetMeetingState() {
+  
   stopTimer();
   isJoined = false;
   client = null;
@@ -1742,7 +1739,6 @@ function resetMeetingState() {
   updateShareButton(false);
   document.getElementById("video-grid").innerHTML = "";
   updateGridLayout();
-  stopRecording();
   document.getElementById("join-container").style.display = "flex";
   document.getElementById("webinar-header").style.display = "none";
   document.getElementById("controls").style.display = "none";
