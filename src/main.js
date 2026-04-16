@@ -42,7 +42,7 @@ let isToggleProcessing = false;
 let isJoined = false;
 let timerInterval = null;
 const sessionName = "Love in Conversation";
-const userName = 'Flutter';
+const userName = "Flutter";
 const role = 1;
 const userIdentity = "host_fc43d7de-54e0-4e0d-96b9-6b6b7e77ba34";
 const userUuid = "019d2400-0b83-73b6-a2fb-fe33cee9098d";
@@ -663,7 +663,6 @@ async function renderAudioOnlySlot(userId, userPayload = {}) {
 /* ─── Join ─── */
 async function startSession() {
   // Show meeting UI
-
   if (!ZoomVideo) {
     alert(
       "Zoom Video SDK not loaded. Ensure https://source.zoom.us/videosdk/zoom-video-2.3.14.min.js is included before src/main.js.",
@@ -679,7 +678,8 @@ async function startSession() {
   document.getElementById("start-btn").textContent = "Joining…";
 
   try {
-    const token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcHBfa2V5IjoiaWpVTnpkNHZSQ1ZHeXFNV1ZXbkFZWlA1WW15NWQ2aFpOTkV5IiwidHBjIjoiTG92ZSBpbiBDb252ZXJzYXRpb24iLCJyb2xlX3R5cGUiOjEsInVzZXJfaWRlbnRpdHkiOiJGbHV0dGVyIiwiaWF0IjoxNzc2MzI0NDU1LCJleHAiOjE3NzYzMzE2NTV9.xPXs4VhN4k3FSUa_HCUO5Q7X2l8UM5SG9vHP0jfK_Dc";
+    const token =
+      "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcHBfa2V5IjoiaWpVTnpkNHZSQ1ZHeXFNV1ZXbkFZWlA1WW15NWQ2aFpOTkV5IiwidHBjIjoiTG92ZSBpbiBDb252ZXJzYXRpb24iLCJyb2xlX3R5cGUiOjEsInVzZXJfaWRlbnRpdHkiOiJGbHV0dGVyIiwiaWF0IjoxNzc2MzI0NDU1LCJleHAiOjE3NzYzMzE2NTV9.xPXs4VhN4k3FSUa_HCUO5Q7X2l8UM5SG9vHP0jfK_Dc";
 
     client = ZoomVideo.createClient();
 
@@ -1596,7 +1596,7 @@ async function leaveSession() {
   isToggleProcessing = true;
   try {
     if (stream) {
-      if(isRecording || isRecordingPaused) await stopRecording();
+      if (isRecording || isRecordingPaused) await stopRecording();
       if (isSharing) await stopLocalShare();
       if (isVideoOn) await stream.stopVideo();
       if (isAudioStarted) await stream.stopAudio();
@@ -1716,8 +1716,50 @@ function exitPictureInPicture() {
   }
 }
 
+async function showConfirmDialog({
+  title = "Are you sure?",
+  confirmText = "Yes",
+  cancelText = "Cancel",
+  showCloseButton = true,
+}) {
+  const { isConfirmed, dismiss } = await Swal.fire({
+    title: title,
+    showCancelButton: true,
+    confirmButtonText: confirmText,
+    cancelButtonText: cancelText,
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    confirmButtonColor: "#FA5A0B",
+    cancelButtonColor: "#949090",
+    showCloseButton,
+  });
+
+  return { isConfirmed, dismiss };
+}
+
+async function showInputDialog({
+  title = "Are you sure?",
+  inputPlaceholder = "Write here...",
+  confirmText = "Yes",
+  cancelText = "Cancel",
+}) {
+  const { isConfirmed, value } = await Swal.fire({
+    title: title,
+    input: "text",
+    inputPlaceholder: inputPlaceholder,
+    showCancelButton: true,
+    confirmButtonText: confirmText,
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    cancelButtonText: cancelText,
+    confirmButtonColor: "#FA5A0B",
+    cancelButtonColor: "#949090",
+  });
+
+  return { isConfirmed, value };
+}
+
 function resetMeetingState() {
-  
   stopTimer();
   isJoined = false;
   client = null;
