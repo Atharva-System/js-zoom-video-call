@@ -23,46 +23,6 @@
     setTimeout(() => input.focus(), 10);
   }
 
-  async function showConfirmDialog({
-    title = "Are you sure?",
-    confirmText = "Yes",
-    cancelText = "Cancel",
-  }) {
-    const { isConfirmed } = await Swal.fire({
-      title: title,
-      showCancelButton: true,
-      confirmButtonText: confirmText,
-      cancelButtonText: cancelText,
-      allowOutsideClick: false,
-      allowEscapeKey: false,
-      confirmButtonColor: "#FA5A0B",
-      cancelButtonColor: "#949090",
-    });
-    return isConfirmed;
-  }
-
-  async function showInputDialog({
-    title = "Are you sure?",
-    inputPlaceholder = "Write here...",
-    confirmText = "Yes",
-    cancelText = "Cancel",
-  }) {
-    const { isConfirmed, value } = await Swal.fire({
-      title: title,
-      input: "text",
-      inputPlaceholder: inputPlaceholder,
-      showCancelButton: true,
-      confirmButtonText: confirmText,
-      allowOutsideClick: false,
-      allowEscapeKey: false,
-      cancelButtonText: cancelText,
-      confirmButtonColor: "#FA5A0B",
-      cancelButtonColor: "#949090",
-    });
-
-    return { isConfirmed, value };
-  }
-
   function closeModal() {
     if (!modal) return;
     modal.classList.add("closing");
@@ -87,7 +47,7 @@
     }, 180);
   }
 
-  panel?.addEventListener("click", (e) => {
+  panel?.addEventListener("click", async (e) => {
     const warning = e.target.closest(".warning");
     if (warning) {
       const user =
@@ -99,6 +59,7 @@
     }
 
     const remove = e.target.closest(".remove");
+
     if (remove) {
       const user =
         remove.dataset.user ||
@@ -107,6 +68,22 @@
       openConfirm(user?.trim());
       return;
     }
+
+    // const chat = e.target.closest(".chat");
+    // if (chat) {
+    //   const { isConfirmed } = await showConfirmDialog({
+    //     title: "Are you sure?",
+    //   });
+    //   console.log("isConfirmed ", isConfirmed);
+    //   if (isConfirmed) {
+    //     const { isConfirmed, value } = await showInputDialog({
+    //       title: "Are you sure?",
+    //       inputPlaceholder: "Write here...",
+    //     });
+    //     console.log("isConfirmed =>", isConfirmed);
+    //     console.log("value =>", value);
+    //   }
+    // }
   });
 
   closeBtn?.addEventListener("click", closeModal);
@@ -129,3 +106,43 @@
     closeConfirm();
   });
 })();
+
+async function showConfirmDialog({
+  title = "Are you sure?",
+  confirmButtonText = "Confirm",
+  cancelButtonText = "Cancel",
+}) {
+  const { isConfirmed } = await Swal.fire({
+    title,
+    showCancelButton: true,
+    confirmButtonText,
+    cancelButtonText,
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    confirmButtonColor: "#FA5A0B",
+    cancelButtonColor: "#949090",
+  });
+  return { isConfirmed };
+}
+
+async function showInputDialog({
+  title = "Are you sure?",
+  inputPlaceholder = "Write here...",
+  confirmButtonText = "Yes",
+  cancelButtonText = "Cancel",
+}) {
+  const { isConfirmed, value } = await Swal.fire({
+    title,
+    input: "text",
+    inputPlaceholder,
+    showCancelButton: true,
+    confirmButtonText,
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    cancelButtonText,
+    confirmButtonColor: "#FA5A0B",
+    cancelButtonColor: "#949090",
+  });
+
+  return { isConfirmed, value };
+}

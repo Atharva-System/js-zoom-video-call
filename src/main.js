@@ -1350,70 +1350,80 @@ function buildVirtualBgGrid() {
       value:
         "https://socialitelive-public.s3.eu-west-1.amazonaws.com/preview_virtualbackgrounds/image_1_150.png",
       type: "image",
-      bgImage: "https://socialitelive-public.s3.eu-west-1.amazonaws.com/original_virtualbackgrounds/image_1.png"
+      bgImage:
+        "https://socialitelive-public.s3.eu-west-1.amazonaws.com/original_virtualbackgrounds/image_1.png",
     },
     {
       label: "Image 2",
       value:
         "https://socialitelive-public.s3.eu-west-1.amazonaws.com/preview_virtualbackgrounds/image_2_150.png",
       type: "image",
-      bgImage: "https://socialitelive-public.s3.eu-west-1.amazonaws.com/original_virtualbackgrounds/image_2.png"
+      bgImage:
+        "https://socialitelive-public.s3.eu-west-1.amazonaws.com/original_virtualbackgrounds/image_2.png",
     },
     {
       label: "Image 3",
       value:
         "https://socialitelive-public.s3.eu-west-1.amazonaws.com/preview_virtualbackgrounds/image_3_150.png",
       type: "image",
-      bgImage: "https://socialitelive-public.s3.eu-west-1.amazonaws.com/original_virtualbackgrounds/image_3.png"
+      bgImage:
+        "https://socialitelive-public.s3.eu-west-1.amazonaws.com/original_virtualbackgrounds/image_3.png",
     },
     {
       label: "Image 4",
       value:
         "https://socialitelive-public.s3.eu-west-1.amazonaws.com/preview_virtualbackgrounds/image_4_150.png",
       type: "image",
-      bgImage: "https://socialitelive-public.s3.eu-west-1.amazonaws.com/original_virtualbackgrounds/image_4.png"
+      bgImage:
+        "https://socialitelive-public.s3.eu-west-1.amazonaws.com/original_virtualbackgrounds/image_4.png",
     },
     {
       label: "Image 5",
       value:
         "https://socialitelive-public.s3.eu-west-1.amazonaws.com/preview_virtualbackgrounds/image_5_150.png",
       type: "image",
-      bgImage: "https://socialitelive-public.s3.eu-west-1.amazonaws.com/original_virtualbackgrounds/image_5.png"
+      bgImage:
+        "https://socialitelive-public.s3.eu-west-1.amazonaws.com/original_virtualbackgrounds/image_5.png",
     },
     {
       label: "Image 6",
       value:
         "https://socialitelive-public.s3.eu-west-1.amazonaws.com/preview_virtualbackgrounds/image_6_150.png",
       type: "image",
-      bgImage: "https://socialitelive-public.s3.eu-west-1.amazonaws.com/original_virtualbackgrounds/image_6.png"
+      bgImage:
+        "https://socialitelive-public.s3.eu-west-1.amazonaws.com/original_virtualbackgrounds/image_6.png",
     },
     {
       label: "Image 7",
       value:
         "https://socialitelive-public.s3.eu-west-1.amazonaws.com/preview_virtualbackgrounds/image_7_150.png",
       type: "image",
-      bgImage: "https://socialitelive-public.s3.eu-west-1.amazonaws.com/original_virtualbackgrounds/image_7.png"
+      bgImage:
+        "https://socialitelive-public.s3.eu-west-1.amazonaws.com/original_virtualbackgrounds/image_7.png",
     },
     {
       label: "Image 8",
       value:
         "https://socialitelive-public.s3.eu-west-1.amazonaws.com/preview_virtualbackgrounds/image_8_150.png",
       type: "image",
-      bgImage: "https://socialitelive-public.s3.eu-west-1.amazonaws.com/original_virtualbackgrounds/image_8.png"
+      bgImage:
+        "https://socialitelive-public.s3.eu-west-1.amazonaws.com/original_virtualbackgrounds/image_8.png",
     },
     {
       label: "Image 9",
       value:
         "https://socialitelive-public.s3.eu-west-1.amazonaws.com/preview_virtualbackgrounds/image_9_150.png",
       type: "image",
-      bgImage: "https://socialitelive-public.s3.eu-west-1.amazonaws.com/original_virtualbackgrounds/image_9.png"
+      bgImage:
+        "https://socialitelive-public.s3.eu-west-1.amazonaws.com/original_virtualbackgrounds/image_9.png",
     },
     {
       label: "Image 10",
       value:
         "https://socialitelive-public.s3.eu-west-1.amazonaws.com/preview_virtualbackgrounds/image_10_150.png",
       type: "image",
-      bgImage: "https://socialitelive-public.s3.eu-west-1.amazonaws.com/original_virtualbackgrounds/image_10.png"
+      bgImage:
+        "https://socialitelive-public.s3.eu-west-1.amazonaws.com/original_virtualbackgrounds/image_10.png",
     },
   ];
   grid.innerHTML = "";
@@ -1743,7 +1753,9 @@ function resetMeetingState() {
   document.getElementById("vid-on").style.display = "none";
   document.getElementById("vid-off").style.display = "";
   document.getElementById("video-btn").classList.remove("active");
-  document.getElementById("vb-modal-btn")?.style.display = "none";
+  if (document.getElementById("vb-modal-btn")) {
+    document.getElementById("vb-modal-btn").style.display = "none";
+  }
   document.getElementById("vb-modal")?.classList.remove("show", "closing");
   const recBtn = document.getElementById("record-btn");
   if (recBtn) {
